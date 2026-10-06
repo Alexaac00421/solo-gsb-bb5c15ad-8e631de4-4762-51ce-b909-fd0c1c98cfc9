@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fare}
+      POSTGRES_USER: ${POSTGRES_USER:-fare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-farepass}
+      TZ: Asia/Shanghai
+      PGTZ: Asia/Shanghai
+    ports:
+      - "${POSTGRES_PORT_PUBLISH:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fare} -d ${POSTGRES_DB:-fare}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-fare}
+      POSTGRES_USER: ${POSTGRES_USER:-fare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-farepass}
+      DAILY_CAP_CENTS: ${DAILY_CAP_CENTS:-2000}
+      TRANSFER_GAP_MINUTES: ${TRANSFER_GAP_MINUTES:-90}
+      TZ: Asia/Shanghai
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+volumes:
+  pgdata:
